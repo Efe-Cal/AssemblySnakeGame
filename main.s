@@ -32,18 +32,41 @@ right:
     movb    (%rbx,%r12,2), %cl       # x
     movb    1(%rbx,%r12,2), %dl      # y
 
+    # make sure not at edge
     cmpb    $SIZE, %cl
     jge     at_edge
     
+    # move the head and tail one unit to the right
     incq     head_index(%rip)
     incq     tail_index(%rip)
     
-    inc     %r12
-    inc     %cl
-    movb    %cl, (%rbx,%r12,2)
-    movb    %dl, 1(%rbx,%r12,2)
+    inc     %r12    # inc r12 which we will use to update the head index 
+    inc     %cl     # cl holds the x value, we increment that
+    
+    movb    %cl, (%rbx,%r12,2)      # put incemented x and y in mem 
+    movb    %dl, 1(%rbx,%r12,2)     # .
     ret    
 left:
+    leaq snake(%rip), %rbx
+
+    # get current tail 
+    mov     tail_index(%rip), %r12
+    movb    (%rbx,%r12,2), %cl       # x
+    movb    1(%rbx,%r12,2), %dl      # y
+
+    # make sure not at edge
+    cmpb    $0, %cl
+    jle     at_edge
+    
+    # move the head and tail one unit to the left
+    decq     head_index(%rip)
+    decq     tail_index(%rip)
+
+    dec     %r12
+    dec     %cl 
+    
+    movb    %cl, (%rbx,%r12,2) 
+    movb    %dl, 1(%rbx,%r12,2)
     ret
 
 at_edge:
@@ -71,7 +94,7 @@ main:
     movq $0, tail_index(%rip)
     movq $2, head_index(%rip)
 
-    movb $1, direction(%rip)
+    movb $3, direction(%rip)
 
     game_loop:
         call    render_screen
