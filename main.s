@@ -21,7 +21,27 @@ dir_jumptable:
     .quad down      # 2
     .quad left      # 3
 
+# TODO: implement array wrap back to 0th index when reached the end
 up:
+
+    leaq    snake(%rip), %rbx
+    # get current head 
+    mov     head_index(%rip), %r12
+    movb    (%rbx,%r12,2), %cl       # x
+    movb    1(%rbx,%r12,2), %dl      # y
+
+    cmpb    $0, %dl
+    jle     at_edge
+    
+    incq     head_index(%rip)
+    incq     tail_index(%rip)
+
+    dec     %dl             # decrement y to go up (top left is 0)
+    inc     %r12
+    
+    movb    %cl, (%rbx,%r12,2)      # put incemented x and y in mem 
+    movb    %dl, 1(%rbx,%r12,2) 
+
     ret
 down:
     ret
@@ -94,7 +114,7 @@ main:
     movq $0, tail_index(%rip)
     movq $2, head_index(%rip)
 
-    movb $3, direction(%rip)
+    movb $0, direction(%rip)
 
     game_loop:
         call    render_screen
