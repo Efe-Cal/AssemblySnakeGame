@@ -31,6 +31,11 @@ up:
     dec     %dl             # decrement y to go up (top left is 0)
     ret
 down:
+    cmpb    $SIZE, %dl
+    jge     at_edge
+
+    mov     $1, %rax
+    inc     %dl             # increment y to go down (top left is 0)
     ret
 right:
 
@@ -101,7 +106,7 @@ main:
     movq $0, tail_index(%rip)
     movq $2, head_index(%rip)
 
-    movb $0, direction(%rip)
+    movb $2, direction(%rip)
 
     game_loop:
         call    render_screen
