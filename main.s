@@ -1,6 +1,7 @@
 .data
 clear_screen: .asciz "\033[2J\033[H"
 print_snake_segment: .asciz "\33[%u;%uH@"
+print_apple: .asciz "\33[%u;%uHA"
 
 old_termios: .zero 64
 current_termios: .zero 64
@@ -12,6 +13,7 @@ old_flags: .quad 0
 
 .bss
 snake: .skip MAX_SNAKE * 2
+apple: .skip 2
 
 head_index: .quad 0
 tail_index: .quad 0
@@ -25,156 +27,8 @@ key: .byte 0
 .extern tcsetattr
 .extern fcntl
 
-dir_jumptable:
-    .quad move_up        # 0
-    .quad move_right     # 1
-    .quad move_down      # 2
-    .quad move_left      # 3
-
-# TODO: implement array wrap back to 0th index when reached the end
-
-move_up:
-    cmpb    $1, %dl
-    jle     at_edge
-
-    mov     $1, %rax
-    dec     %dl             # decrement y to go up (top left is 0)
-    ret
-move_down:
-    cmpb    $SIZE, %dl
-    jge     at_edge
-
-    mov     $1, %rax
-    inc     %dl             # increment y to go down (top left is 0)
-    ret
-move_right:
-
-    # make sure not at edge
-    cmpb    $SIZE, %cl
-    jge     at_edge
-    
-    mov     $1, %rax
-    inc     %cl     # cl holds the x value, we increment that
-    ret    
-move_left:
-    # make sure not at edge
-    cmpb    $1, %cl
-    jle     at_edge
-
-    mov     $1, %rax
-    dec     %cl
-    ret
-
-at_edge:
-    ret
-
-handle_movement:
-
-    leaq    snake(%rip), %rbx
-    # get current head 
-    mov     head_index(%rip), %r12
-    movb    (%rbx,%r12,2), %cl       # x
-    movb    1(%rbx,%r12,2), %dl      # y
-
-    movzbq  direction(%rip), %rax
-    shlq    $3, %rax
-    movq    dir_jumptable(%rax), %rax
-    call    *%rax
-
-    cmp     $1, %rax
-    jne     movement_skipped
-
-    incq     head_index(%rip)
-    incq     tail_index(%rip)
-
-    inc     %r12    # inc r12 which we will use to update the head index 
-    movb    %cl, (%rbx,%r12,2)      # put incemented x and y in mem 
-    movb    %dl, 1(%rbx,%r12,2)     # .
-    
-    movement_skipped:
-    ret
-
-setup_terminal:
-    
-    pushq    %rbp
-    movq     %rsp, %rbp
-
-    # tcgetattr to get the old termios settings
-    movq    $0, %rdi                    # stdin file descriptor
-    leaq    old_termios(%rip), %rsi
-    call    tcgetattr
-
-
-    movq    $0, %rdi                    # stdin file descriptor
-    leaq    current_termios(%rip), %rsi
-    call    tcgetattr
-
-    # Setting ICANON (2) and ECHO (8) flag bits to 0 and keep the rest same
-    andl     $~10, current_termios+12(%rip)
-
-    mov     $0, %rdi
-    mov     $0, %rsi
-    leaq    current_termios(%rip), %rdx
-    call    tcsetattr
-
-    # Get current file control flags
-    movq $0, %rdi                    # stdin
-    movq $3, %rsi                    # 3:  F_GETFL
-    call fcntl
-
-    movq %rax, old_flags(%rip)
-
-    movq %rax, %rdx
-    orq $2048, %rdx                 # Add the non blocking flag (value 2048) to the flags we got
-
-    # set file control flags
-    movq $0, %rdi
-    movq $4, %rsi                    # 4: F_SETFL
-    call fcntl
-
-    movq     %rbp, %rsp
-    popq     %rbp
-
-    ret
-
-restore_terminal:
-    
-    pushq    %rbp
-    movq     %rsp, %rbp
-
-    mov     $0, %rdi
-    mov     $0, %rsi
-    mov     old_termios(%rip), %rdx
-    call    tcsetattr
-    
-    movq $0, %rdi
-    movq $4, %rsi                    # F_SETFL
-    movq old_flags(%rip), %rdx
-    call fcntl
-
-    movq     %rbp, %rsp
-    popq     %rbp
-
-    ret
-
-
-read_key:
-    movq    $0, %rax            # sys_read
-    movq    $0, %rdi            # stdin
-    leaq    key(%rip), %rsi     # write location
-    movq    $1, %rdx            # read 1 byte
-    syscall
-
-    # rax == 1 means a key was read
-    cmpq $1, %rax
-    jne no_key
-
-    movzbl key(%rip), %eax
-    ret
-    
-    no_key:
-        mov     $0, %rax
-        ret
+.include "handle_movement.s"
+.include "handle_terminal.s"
 
 
 pressed_up:     
@@ -198,6 +52,11 @@ main:
 
     call setup_terminal
 
+    # setup random from time seed
+    call time
+    mov %rax, %rdi
+    call srand
+
     leaq snake(%rip), %rbx
     # segment 0 = (5,5)
     movb $5, (%rbx)      # x
@@ -211,10 +70,14 @@ main:
     movb $7, 4(%rbx)      # x
     movb $5, 5(%rbx)      # y
 
+    # apple
+    movb $15, apple(%rip)
+    movb $5,  apple+1(%rip)
+
     movq $0, tail_index(%rip)
     movq $2, head_index(%rip)
 
-    movb $2, direction(%rip)
+    movb $1, direction(%rip)
 
     game_loop:
         call    read_key
@@ -232,6 +95,28 @@ main:
         je pressed_right
 
         continue_game_loop:
+
+        leaq    snake(%rip), %rbx
+        # get current head 
+        mov     head_index(%rip), %r12
+        movb    (%rbx,%r12,2), %cl       # x
+        movb    1(%rbx,%r12,2), %dl      # y
+
+        movq    $0, %rdi
+
+        cmpb    %cl, apple(%rip)
+        jne     no_apple_eaten
+
+        cmpb    %dl, apple+1(%rip)
+        jne     no_apple_eaten
+
+        movq    $1, %rdi
+
+        push    %rbx
+        call    relocate_apple
+        pop     %rbx
+
+        no_apple_eaten:
         call    handle_movement
         call    render_screen
 
@@ -258,6 +143,17 @@ render_screen:
     mov $0, %rax
     call printf
 
+    # Render apple
+    leaq    apple(%rip), %rbx
+    movb    (%rbx), %cl       # x
+    movb    1(%rbx), %dl      # y
+    
+    mov $print_apple, %rdi
+    movzbq %dl, %rsi
+    movzbq %cl, %rdx
+    mov $0, %rax
+    call printf
+
     leaq    snake(%rip), %rbx
     render_snake_loop:
 
@@ -270,13 +166,29 @@ render_screen:
         mov $0, %rax
         call printf
 
-        mov $0, %rdi       # NULL = flush all output streams
-        call fflush
-
         inc %r12
         cmp %r12, head_index(%rip)
         jge render_snake_loop
 
+    # flush the stdin buffer 
+    mov $0, %rdi       # NULL = flush all output streams
+    call fflush
+    
     movq     %rbp, %rsp
     popq     %rbp
+    ret
+
+relocate_apple:
+    movq    $SIZE, %rbx
+
+    call    rand
+    divq    %rbx, %rax          # apple = rand_num % SIZE 
+    inc     %dl
+    movb    %dl, apple(%rip)
+
+    call    rand
+    divq    %rbx, %rax
+    inc     %di
+    movb    %dl, apple+1(%rip)
+    
     ret
