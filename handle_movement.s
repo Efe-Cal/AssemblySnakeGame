@@ -83,7 +83,7 @@ handle_movement:
     incq    tail_index(%rip)
 
     check_tail_wrap:
-        cmp     %r13, tail_index(%rip)
+        cmpq    $MAX_SNAKE, tail_index(%rip)
         jne     skip_tail_inc
 
         movq    $0, tail_index(%rip)

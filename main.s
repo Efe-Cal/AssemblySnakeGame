@@ -2,6 +2,11 @@
 clear_screen: .asciz "\033[2J\033[H"
 print_snake_segment: .asciz "\33[%u;%uH@"
 print_apple: .asciz "\33[%u;%uHA"
+snake_head_chars:
+    .asciz "\33[%u;%uH^"
+    .asciz "\33[%u;%uH>"
+    .asciz "\33[%u;%uHv"
+    .asciz "\33[%u;%uH<"
 
 old_termios: .zero 64
 current_termios: .zero 64
@@ -164,22 +169,35 @@ render_screen:
         movb    1(%rbx,%r12,2), %dl      # y
 
         mov $print_snake_segment, %rdi
+
+        cmp      %r12, head_index(%rip)
+        jne      not_head
+
+        movzbq  direction, %rax
+        imulq   $10, %rax
+        add     $snake_head_chars, %rax
+        mov     %rax, %rdi
+
+        not_head:
         movzbq %dl, %rsi
         movzbq %cl, %rdx
         mov $0, %rax
         call printf
 
-        inc %r12
+        # Stop after drawing the head
+        cmp     %r12, head_index(%rip)
+        je      render_snake_done
 
+        inc %r12
 
         mov     $MAX_SNAKE, %r14    # r14 holds the array size 
         cmp     %r14, %r12
         mov     $0, %r13
         cmove   %r13, %r12      # move zero to r12
 
-        cmp %r12, head_index(%rip)
-        jne render_snake_loop
+        jmp     render_snake_loop
 
+    render_snake_done:
     # flush the stdin buffer 
     mov $0, %rdi       # NULL = flush all output streams
     call fflush
