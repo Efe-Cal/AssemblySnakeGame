@@ -4,8 +4,6 @@ dir_jumptable:
     .quad move_down      # 2
     .quad move_left      # 3
 
-# TODO: implement array wrap back to 0th index when reached the end
-
 move_up:
     cmpb    $1, %dl
     jle     at_edge
@@ -68,33 +66,31 @@ handle_movement:
     mov     $MAX_SNAKE, %r13    # r13 temporarily holds the array size 
     dec     %r13
     cmp     %r13, %r12
-    je      wrap_case
+    je      wrap_head_case
 
     incq    head_index(%rip)
     jmp     normal_case
 
-    wrap_case:
+    wrap_head_case:
         movq  $0, head_index(%rip)         # move zero to head_index
         movq  $0, %r12                     # move zero to r12 to later write to the array
+        jmp   normal_case
 
-        # clear till tail_index
-        mov     $1, %r13        # r13 will be the loop counter here
-        clear_loop:
-            movb    $0, (%rbx, %r13, 2)       # x
-            movb    $0, 1(%rbx, %r13, 2)      # y
-
-            inc     %r13
-            cmp     tail_index, %r13
-            jne     clear_loop
 
     normal_case:
     cmpq    $0, %rdi
     jne     skip_tail_inc 
     incq    tail_index(%rip)
 
+    check_tail_wrap:
+        cmp     %r13, tail_index(%rip)
+        jne     skip_tail_inc
+
+        movq    $0, tail_index(%rip)
+
     skip_tail_inc:
 
-    inc     %r12    # inc r12 which we will use to update the head index 
+    movq    head_index, %r12 
     movb    %cl, (%rbx,%r12,2)      # put incemented x and y in mem 
     movb    %dl, 1(%rbx,%r12,2)     # .
     

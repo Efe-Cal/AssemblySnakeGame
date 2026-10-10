@@ -135,10 +135,10 @@ render_screen:
     pushq    %rbp
     movq     %rsp, %rbp
 
-    push    $0
     push    %rbx
     push    %r12
     push    %r13
+    push    %r14
 
     mov     tail_index(%rip), %r12
 
@@ -172,9 +172,8 @@ render_screen:
         inc %r12
 
 
-        mov     $MAX_SNAKE, %r13    # r13 temporarily holds the array size 
-        dec     %r13
-        cmp     %r13, %r12
+        mov     $MAX_SNAKE, %r14    # r14 holds the array size 
+        cmp     %r14, %r12
         mov     $0, %r13
         cmove   %r13, %r12      # move zero to r12
 
@@ -185,6 +184,7 @@ render_screen:
     mov $0, %rdi       # NULL = flush all output streams
     call fflush
     
+    pop     %r14
     pop     %r13
     pop     %r12
     pop     %rbx
@@ -204,6 +204,7 @@ relocate_apple:
     movb    %dl, apple(%rip)
 
     call    rand
+    xorq    %rdx, %rdx
     divq    %rbx, %rax
     inc     %dl
     movb    %dl, apple+1(%rip)
