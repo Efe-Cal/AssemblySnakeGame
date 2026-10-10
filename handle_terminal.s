@@ -1,5 +1,7 @@
+.text
+
+.globl setup_terminal
 setup_terminal:
-    
     pushq    %rbp
     movq     %rsp, %rbp
 

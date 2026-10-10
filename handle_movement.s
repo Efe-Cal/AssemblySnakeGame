@@ -43,6 +43,11 @@ at_edge:
 
 # RDI: did eat apple (0/1)
 handle_movement:
+    push    %rbp
+    mov     %rsp, %rbp
+
+    push    %rbx
+    push    %r12
 
     leaq    snake(%rip), %rbx
     # get current head 
@@ -69,4 +74,11 @@ handle_movement:
     movb    %dl, 1(%rbx,%r12,2)     # .
     
     movement_skipped:
+
+    pop    %r12
+    pop    %rbx
+
+    mov    %rbp, %rsp
+    pop    %rbp
+    
     ret

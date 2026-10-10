@@ -112,9 +112,7 @@ main:
 
         movq    $1, %rdi
 
-        push    %rbx
         call    relocate_apple
-        pop     %rbx
 
         no_apple_eaten:
         call    handle_movement
@@ -136,6 +134,9 @@ main:
 render_screen:
     pushq    %rbp
     movq     %rsp, %rbp
+
+    push    %rbx
+    push    %r12
 
     mov     tail_index(%rip), %r12
 
@@ -174,11 +175,16 @@ render_screen:
     mov $0, %rdi       # NULL = flush all output streams
     call fflush
     
-    movq     %rbp, %rsp
-    popq     %rbp
+    pop     %r12
+    pop     %rbx
+
+    movq    %rbp, %rsp
+    popq    %rbp
     ret
 
 relocate_apple:
+    push    %rbx
+
     movq    $SIZE, %rbx
 
     call    rand
@@ -191,4 +197,5 @@ relocate_apple:
     inc     %di
     movb    %dl, apple+1(%rip)
     
+    pop     %rbx
     ret
