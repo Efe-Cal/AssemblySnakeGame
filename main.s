@@ -118,7 +118,7 @@ main:
         call    handle_movement
         call    render_screen
 
-        mov $500000, %rdi
+        mov $100000, %rdi
         call usleep
 
         jmp game_loop
@@ -135,8 +135,10 @@ render_screen:
     pushq    %rbp
     movq     %rsp, %rbp
 
+    push    $0
     push    %rbx
     push    %r12
+    push    %r13
 
     mov     tail_index(%rip), %r12
 
@@ -168,13 +170,22 @@ render_screen:
         call printf
 
         inc %r12
+
+
+        mov     $MAX_SNAKE, %r13    # r13 temporarily holds the array size 
+        dec     %r13
+        cmp     %r13, %r12
+        mov     $0, %r13
+        cmove   %r13, %r12      # move zero to r12
+
         cmp %r12, head_index(%rip)
-        jge render_snake_loop
+        jne render_snake_loop
 
     # flush the stdin buffer 
     mov $0, %rdi       # NULL = flush all output streams
     call fflush
     
+    pop     %r13
     pop     %r12
     pop     %rbx
 
@@ -189,12 +200,12 @@ relocate_apple:
 
     call    rand
     divq    %rbx, %rax          # apple = rand_num % SIZE 
-    inc     %dl
+    inc     %dl                 # rdx holds the remainder, inc to get value between 1-20
     movb    %dl, apple(%rip)
 
     call    rand
     divq    %rbx, %rax
-    inc     %di
+    inc     %dl
     movb    %dl, apple+1(%rip)
     
     pop     %rbx

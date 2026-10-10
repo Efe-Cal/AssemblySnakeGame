@@ -46,8 +46,10 @@ handle_movement:
     push    %rbp
     mov     %rsp, %rbp
 
+    push    $0
     push    %rbx
     push    %r12
+    push    %r13
 
     leaq    snake(%rip), %rbx
     # get current head 
@@ -63,18 +65,42 @@ handle_movement:
     cmp     $1, %rax
     jne     movement_skipped
 
+    mov     $MAX_SNAKE, %r13    # r13 temporarily holds the array size 
+    dec     %r13
+    cmp     %r13, %r12
+    je      wrap_case
+
     incq    head_index(%rip)
+    jmp     normal_case
+
+    wrap_case:
+        movq  $0, head_index(%rip)         # move zero to head_index
+        movq  $0, %r12                     # move zero to r12 to later write to the array
+
+        # clear till tail_index
+        mov     $1, %r13        # r13 will be the loop counter here
+        clear_loop:
+            movb    $0, (%rbx, %r13, 2)       # x
+            movb    $0, 1(%rbx, %r13, 2)      # y
+
+            inc     %r13
+            cmp     tail_index, %r13
+            jne     clear_loop
+
+    normal_case:
     cmpq    $0, %rdi
     jne     skip_tail_inc 
     incq    tail_index(%rip)
 
     skip_tail_inc:
+
     inc     %r12    # inc r12 which we will use to update the head index 
     movb    %cl, (%rbx,%r12,2)      # put incemented x and y in mem 
     movb    %dl, 1(%rbx,%r12,2)     # .
     
     movement_skipped:
 
+    pop    %r13
     pop    %r12
     pop    %rbx
 
