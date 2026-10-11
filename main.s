@@ -8,6 +8,8 @@ snake_head_chars:
     .asciz "\33[%u;%uHv"
     .asciz "\33[%u;%uH<"
 
+game_over_message: .asciz "Game Over\nYour Score: %d\n\n\n"
+
 old_termios: .zero 64
 current_termios: .zero 64
 old_flags: .quad 0
@@ -54,6 +56,13 @@ main:
 
     pushq    %rbp
     movq     %rsp, %rbp
+
+    push    $0
+    push    %rbx
+    push    %r12   
+    push    %r13
+
+    mov     $0, %r13   
 
     call setup_terminal
 
@@ -115,12 +124,15 @@ main:
         cmpb    %dl, apple+1(%rip)
         jne     no_apple_eaten
 
-        movq    $1, %rdi
+        # movq    $1, %rdi
+        inc     %r13
 
         call    relocate_apple
 
         no_apple_eaten:
         call    handle_movement
+        cmp     $1, %rax
+        je      game_over
         call    render_screen
 
         mov $100000, %rdi
@@ -128,13 +140,30 @@ main:
 
         jmp game_loop
 
+    game_over:
+
+    mov     $clear_screen, %rdi
+    mov     $0, %rax
+    call    printf
+
+    mov     $game_over_message, %rdi
+    mov     %r13, %rsi
+    mov     $0, %rax
+    call    printf
+    
+
     call restore_terminal
 
-    movq     %rbp, %rsp
-    popq     %rbp
+    pop     %r13
+    pop     %r12
+    pop     %rbx
 
-    mov $0, %rdi
-    call exit
+    movq    %rbp, %rsp
+    popq    %rbp
+
+    mov     $0, %rax
+    ret
+
 
 render_screen:
     pushq    %rbp

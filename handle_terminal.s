@@ -50,13 +50,13 @@ restore_terminal:
 
     mov     $0, %rdi
     mov     $0, %rsi
-    mov     old_termios(%rip), %rdx
+    leaq    old_termios(%rip), %rdx
     call    tcsetattr
     
-    movq $0, %rdi
-    movq $4, %rsi                    # F_SETFL
-    movq old_flags(%rip), %rdx
-    call fcntl
+    movq    $0, %rdi
+    movq    $4, %rsi                    # F_SETFL
+    movq    old_flags(%rip), %rdx
+    call    fcntl
 
     movq     %rbp, %rsp
     popq     %rbp

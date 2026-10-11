@@ -40,6 +40,7 @@ at_edge:
     ret
 
 # RDI: did eat apple (0/1)
+# returns 1 if wall is hit
 handle_movement:
     push    %rbp
     mov     %rsp, %rbp
@@ -61,7 +62,13 @@ handle_movement:
     call    *%rax
 
     cmp     $1, %rax
-    jne     movement_skipped
+    je      not_hit_the_wall
+
+    # when hit the wall
+    mov     $1, %rax
+    jmp     skip_movement
+
+    not_hit_the_wall:
 
     mov     $MAX_SNAKE, %r13    # r13 temporarily holds the array size 
     dec     %r13
@@ -93,9 +100,10 @@ handle_movement:
     movq    head_index, %r12 
     movb    %cl, (%rbx,%r12,2)      # put incemented x and y in mem 
     movb    %dl, 1(%rbx,%r12,2)     # .
-    
-    movement_skipped:
 
+    mov     $0, %rax
+
+    skip_movement:
     pop    %r13
     pop    %r12
     pop    %rbx
