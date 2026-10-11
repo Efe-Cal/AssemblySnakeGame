@@ -1,9 +1,19 @@
+.data
+hide_cursor: .ascii "\033[?25l"
+restore_cursor: .ascii "\033[?25h"
+
 .text
 
 .globl setup_terminal
 setup_terminal:
     pushq    %rbp
     movq     %rsp, %rbp
+
+    movq    $1, %rax                  # SYS_write
+    movq    $1, %rdi                  # stdout
+    leaq    hide_cursor(%rip), %rsi
+    mov     $6, %rdx
+    syscall
 
     # tcgetattr to get the old termios settings
     movq    $0, %rdi                    # stdin file descriptor
@@ -47,6 +57,12 @@ restore_terminal:
     
     pushq    %rbp
     movq     %rsp, %rbp
+
+    movq    $1, %rax                  # SYS_write
+    movq    $1, %rdi                  # stdout
+    leaq    restore_cursor(%rip), %rsi
+    mov     $6, %rdx
+    syscall
 
     mov     $0, %rdi
     mov     $0, %rsi
