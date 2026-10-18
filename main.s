@@ -20,6 +20,7 @@ tail_index: .quad 0
 direction: .byte 0
 
 key: .byte 0
+quit_requested: .byte 0
 
 .text
 
@@ -72,6 +73,11 @@ main:
 
     call setup_terminal
 
+    # Register Ctrl+C handler
+    mov $2, %edi                    # SIGINT
+    lea sigint_handler(%rip), %rsi
+    call signal@PLT
+
     mov $clear_screen, %rdi
     mov $0, %rax
     call printf
@@ -110,6 +116,9 @@ main:
     movb $1, direction(%rip)
 
     game_loop:
+        cmpb    $1, quit_requested
+        je      game_over
+
         call    read_key
 
         cmpb $'w', %al
@@ -197,4 +206,9 @@ relocate_apple:
     movb    %dl, apple+1(%rip)
     
     pop     %rbx
+    ret
+
+
+sigint_handler:
+    movl $1, quit_requested(%rip)
     ret
