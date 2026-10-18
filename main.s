@@ -32,16 +32,28 @@ key: .byte 0
 .include "render.s"
 
 
-pressed_up:     
+pressed_up:
+    cmpb     $2, direction
+    je      continue_game_loop
+    
     movb    $0, direction(%rip)
     jmp continue_game_loop
-pressed_right:  
+pressed_right:
+    cmpb     $3, direction
+    je      continue_game_loop
+
     movb    $1, direction(%rip)
     jmp continue_game_loop
-pressed_down:   
+pressed_down:
+    cmpb     $0, direction
+    je      continue_game_loop
+
     movb    $2, direction(%rip)
     jmp continue_game_loop
-pressed_left:   
+pressed_left:
+    cmpb     $1, direction
+    je      continue_game_loop
+
     movb    $3, direction(%rip)
     jmp continue_game_loop
 
