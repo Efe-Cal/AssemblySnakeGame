@@ -1,12 +1,5 @@
 .data
 clear_screen: .asciz "\033[2J\033[H"
-print_snake_segment: .asciz "\33[%u;%uH@"
-print_apple: .asciz "\33[%u;%uHA"
-snake_head_chars:
-    .asciz "\33[%u;%uH^"
-    .asciz "\33[%u;%uH>"
-    .asciz "\33[%u;%uHv"
-    .asciz "\33[%u;%uH<"
 
 game_over_message: .asciz "Game Over\nYour Score: %d\n\n\n"
 
@@ -36,6 +29,7 @@ key: .byte 0
 
 .include "handle_movement.s"
 .include "handle_terminal.s"
+.include "render.s"
 
 
 pressed_up:     
@@ -66,10 +60,17 @@ main:
 
     call setup_terminal
 
+    mov $clear_screen, %rdi
+    mov $0, %rax
+    call printf
+
+    call draw_frame
+
     # setup random from time seed
-    call time
-    mov %rax, %rdi
-    call srand
+    mov     $0, %rdi
+    call    time
+    mov     %rax, %rdi
+    call    srand
 
     leaq snake(%rip), %rbx
     # segment 0 = (5,5)
@@ -162,82 +163,6 @@ main:
     popq    %rbp
 
     mov     $0, %rax
-    ret
-
-
-render_screen:
-    pushq    %rbp
-    movq     %rsp, %rbp
-
-    push    %rbx
-    push    %r12
-    push    %r13
-    push    %r14
-
-    mov     tail_index(%rip), %r12
-
-    mov $clear_screen, %rdi
-    mov $0, %rax
-    call printf
-
-    # Render apple
-    leaq    apple(%rip), %rbx
-    movb    (%rbx), %cl       # x
-    movb    1(%rbx), %dl      # y
-    
-    mov $print_apple, %rdi
-    movzbq %dl, %rsi
-    movzbq %cl, %rdx
-    mov $0, %rax
-    call printf
-
-    leaq    snake(%rip), %rbx
-    render_snake_loop:
-
-        movb    (%rbx,%r12,2), %cl       # x
-        movb    1(%rbx,%r12,2), %dl      # y
-
-        mov $print_snake_segment, %rdi
-
-        cmp      %r12, head_index(%rip)
-        jne      not_head
-
-        movzbq  direction, %rax
-        imulq   $10, %rax
-        add     $snake_head_chars, %rax
-        mov     %rax, %rdi
-
-        not_head:
-        movzbq %dl, %rsi
-        movzbq %cl, %rdx
-        mov $0, %rax
-        call printf
-
-        # Stop after drawing the head
-        cmp     %r12, head_index(%rip)
-        je      render_snake_done
-
-        inc %r12
-
-        mov     $MAX_SNAKE, %r14    # r14 holds the array size 
-        cmp     %r14, %r12
-        mov     $0, %r13
-        cmove   %r13, %r12      # move zero to r12
-
-        jmp     render_snake_loop
-
-    render_snake_done:
-    # flush the stdin buffer 
-    mov $0, %rdi       # NULL = flush all output streams
-    call fflush
-    
-    pop     %r14
-    pop     %r13
-    pop     %r12
-    pop     %rbx
-
-    movq    %rbp, %rsp
-    popq    %rbp
     ret
 
 relocate_apple:

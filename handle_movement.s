@@ -86,7 +86,19 @@ handle_movement:
 
     normal_case:
     cmpq    $0, %rdi
-    jne     skip_tail_inc 
+    jne     skip_tail_inc
+    
+    leaq    snake(%rip), %rbx
+    mov     tail_index(%rip), %r12
+    movb    (%rbx,%r12,2), %dil       # x
+    movb    1(%rbx,%r12,2), %sil      # y
+
+    push    %rcx
+    push    %rdx
+    call    clear_position
+    pop     %rdx
+    pop     %rcx
+
     incq    tail_index(%rip)
 
     check_tail_wrap:
