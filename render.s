@@ -41,6 +41,8 @@ render_screen:
     mov $print_apple, %rdi
     movzbq %dl, %rsi
     movzbq %cl, %rdx
+    inc %rsi
+    inc %rdx
     mov $0, %rax
     call printf
 
@@ -49,6 +51,9 @@ render_screen:
 
         movb    (%rbx,%r12,2), %cl       # x
         movb    1(%rbx,%r12,2), %dl      # y
+
+        incb    %cl
+        incb    %dl
 
         mov $print_snake_segment, %rdi
 
@@ -109,6 +114,8 @@ clear_position:
 
     movzbq    %dil, %rdx    # column = x
     movzbq    %sil, %rsi    # row = y
+    inc       %rdx         # for the border
+    inc       %rsi         # for the border
     mov     $clear_char, %rdi
     xorq    %rax, %rax
     call    printf

@@ -64,6 +64,9 @@ main:
     mov $0, %rax
     call printf
 
+    xor %edi, %edi
+    call fflush
+
     call draw_frame
 
     # setup random from time seed
