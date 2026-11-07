@@ -1,6 +1,8 @@
 .data
 clear_screen: .asciz "\033[2J\033[H"
 
+pre_game_message: .asciz "\33[23;0HStart   SPACE   -   Controls   WASD"
+
 game_over_message: .asciz "Game Over\nYour Score: %d\n\n\n"
 
 old_termios: .zero 64
@@ -114,6 +116,21 @@ main:
     movq $2, head_index(%rip)
 
     movb $1, direction(%rip)
+
+    call render_screen
+
+    mov  $pre_game_message, %rdi
+    xor  %rax, %rax
+    call printf
+    
+    xor %edi, %edi
+    call fflush
+
+    pre_game_loop:
+        call    read_key
+        cmpb    $' ' , %al
+        jne     pre_game_loop
+
 
     game_loop:
         cmpb    $1, quit_requested
