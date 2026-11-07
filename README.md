@@ -6,6 +6,7 @@ A simple snake game that runs in the terminal. Controls are the WASD keys. Don't
 The game is written in x86 GNU Assembly but it calls some C functions to handle the terminal. 
 
 ## Screenshots
+<img width="656" height="559" alt="image" src="https://github.com/user-attachments/assets/439ef0b9-8978-41ed-91b8-d492ec9ea63a" />
 
 ## Getting Started
 
